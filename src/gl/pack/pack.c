@@ -8,11 +8,7 @@
 
 
 #include <string.h>
-#include <stdio.h>
-#include <android/log.h>
-
-//#define Printf(...) __android_log_print(ANDROID_LOG_INFO, "LIBGL", __VA_ARGS__)
-#define Printf(...) printf(__VA_ARGS__)
+#include "printf_def.h"
 
 //int loaded = 0;
 
@@ -97,7 +93,9 @@ void glTexImage2D (GLenum target, GLint level, GLint internalformat, GLsizei wid
 }
 
 void glDrawBuffer (GLenum buf){    _LOAD_GLES    
- gles_glDrawBuffers (1, (const GLenum *)(&buf));
+ //Printf("GL: glDrawBuffer(%x) \n", buf);
+ GLenum *bufs = &buf;
+ gles_glDrawBuffers (1, (const GLenum *)bufs);
 
 }
 
@@ -112,45 +110,76 @@ void glClear (GLbitfield mask){    _LOAD_GLES
  if(count>50000000){
   count=0;
  }*/
+ //Printf("GL: glClear(%x) \n", mask);
  
- //if((mask&GL_COLOR_BUFFER_BIT)!=0){
- if(mask==GL_COLOR_BUFFER_BIT){
-    gles_glDrawBuffers(MaxDrawBuffers, (const GLenum *)Attachs);
+ if((mask&GL_COLOR_BUFFER_BIT)!=0){
+ //if(mask==GL_COLOR_BUFFER_BIT){
+    /*gles_glDrawBuffers(MaxDrawBuffers, (const GLenum *)Attachs);
     for(int n=1; n<MaxDrawBuffers; n++){
     	gles_glClearBufferfv(GL_COLOR, n, (const float *)ClearColorValue);
+    }*/
+    //Printf("GL: DrawBufs_Num=%d \n", DrawBufs_Num);
+    if(DrawBufs_Num==0){
+    	DrawBufs_Num++;
+    	DrawBufs[0]=GL_COLOR_ATTACHMENT0;
+    }
+    gles_glDrawBuffers(MaxDrawBuffers, (const GLenum *)Attachs);
+    //gles_glDrawBuffers(DrawBufs_Num, (const GLenum *)DrawBufs);
+    for(int n=0; n<DrawBufs_Num; n++){
+    	gles_glClearBufferfv(GL_COLOR, 
+    						 DrawBufs[n]-GL_COLOR_ATTACHMENT0, 
+    						 (const GLfloat *)ClearColorValue
+    						);
+ 		//Printf("GL: DrawBufs[%d]=%d \n", n, DrawBufs[n]-GL_COLOR_ATTACHMENT0);
     }
  }
-  gles_glClear (mask);
+ /*
+ if((mask&GL_DEPTH_BUFFER_BIT)!=0){
+ 	gles_glClearBufferfv(GL_DEPTH, 0, (const GLfloat *)ClearDepthValue);
+ }
+ 
+ if((mask&GL_STENCIL_BUFFER_BIT)!=0){
+ 	gles_glClearBufferiv(GL_STENCIL, 0, (const GLint *)ClearStencilValue);
+ }
+ */
+ gles_glClear (mask);
 //====
 }
 
 void glClearColor (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha){    _LOAD_GLES    
+ ClearColorValue[0]=red;
+ ClearColorValue[1]=green;
+ ClearColorValue[2]=blue;
+ ClearColorValue[3]=alpha;
+ 
  gles_glClearColor (red, green, blue, alpha);
 //====
 }
 
 void glClearStencil (GLint s){    _LOAD_GLES    
+ //ClearStencilValue[0]=s;
  gles_glClearStencil (s);
 //====
 }
 
 void glClearDepth (GLdouble depth){    _LOAD_GLES    
+ //ClearDepthValue[0]=(GLfloat)depth;
  gles_glClearDepthf ((GLfloat)depth);
 //====pack
 }
 
 void glStencilMask (GLuint mask){    _LOAD_GLES    
- gl4es_glStencilMask (mask);
+ gles_glStencilMask (mask);
 
 }
 
 void glColorMask (GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha){    _LOAD_GLES    
- gl4es_glColorMask (red, green, blue, alpha);
+ gles_glColorMask (red, green, blue, alpha);
 
 }
 
 void glDepthMask (GLboolean flag){    _LOAD_GLES    
- gl4es_glDepthMask (flag);
+ gles_glDepthMask (flag);
 
 }
 
@@ -165,17 +194,17 @@ void glEnable (GLenum cap){    _LOAD_GLES
 }
 
 void glFinish (void){    _LOAD_GLES    
- gl4es_glFinish ();
+ gles_glFinish ();
 
 }
 
 void glFlush (void){    _LOAD_GLES    
- gl4es_glFlush ();
+ gles_glFlush ();
 
 }
 
 void glBlendFunc (GLenum sfactor, GLenum dfactor){    _LOAD_GLES    
- gl4es_glBlendFunc (sfactor, dfactor);
+ gles_glBlendFunc (sfactor, dfactor);
 
 }
 
@@ -185,7 +214,7 @@ void glLogicOp (GLenum opcode){    _LOAD_GLES
 }
 
 void glStencilFunc (GLenum func, GLint ref, GLuint mask){    _LOAD_GLES    
- gl4es_glStencilFunc (func, ref, mask);
+ gles_glStencilFunc (func, ref, mask);
 
 }
 
@@ -195,7 +224,7 @@ void glStencilOp (GLenum fail, GLenum zfail, GLenum zpass){    _LOAD_GLES
 }
 
 void glDepthFunc (GLenum func){    _LOAD_GLES    
- gl4es_glDepthFunc (func);
+ gles_glDepthFunc (func);
 
 }
 
@@ -612,6 +641,19 @@ void glDrawBuffers (GLsizei n, const GLenum *bufs){    _LOAD_GLES
   count=0;
  }
 */
+ /*
+ Printf("GL: glDrawBuffers( \n");
+ for(GLsizei i=0; i<n; i++){
+ 	Printf("%x, \n", bufs[i]);
+ }
+ Printf(") \n");
+ */
+ 
+ DrawBufs_Num	=	n;
+ for	(int i=0; i<n; i++)	{
+ 	DrawBufs[i]	=	bufs[i];
+ }
+ 
  gles_glDrawBuffers (n, bufs);
 
 }
@@ -1433,84 +1475,29 @@ void glGetTexParameterIuiv (GLenum target, GLenum pname, GLuint *params){    _LO
 }
 
 void glClearBufferiv (GLenum buffer, GLint drawbuffer, const GLint *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferiv()\n");
+ //gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
+ //Printf("VGPU: Calling glClearBufferiv()\n");
  gles_glClearBufferiv (buffer, drawbuffer, value);
 //====
 }
 
 void glClearBufferuiv (GLenum buffer, GLint drawbuffer, const GLuint *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferuiv()\n");
+ //gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
+ //Printf("VGPU: Calling glClearBufferuiv()\n");
  gles_glClearBufferuiv (buffer, drawbuffer, value);
 //====
 }
 
 void glClearBufferfv (GLenum buffer, GLint drawbuffer, const GLfloat *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferfv()\n");
+ //gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
+ //Printf("VGPU: Calling glClearBufferfv()\n");
  gles_glClearBufferfv (buffer, drawbuffer, value);
 //====
 }
 
 void glClearBufferfi (GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferfi()\n");
- gles_glClearBufferfi (buffer, drawbuffer, depth, stencil);
-//====
-}
-
-void glClearBufferivARB (GLenum buffer, GLint drawbuffer, const GLint *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferiv()\n");
- gles_glClearBufferiv (buffer, drawbuffer, value);
-//====
-}
-
-void glClearBufferuivARB (GLenum buffer, GLint drawbuffer, const GLuint *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferuiv()\n");
- gles_glClearBufferuiv (buffer, drawbuffer, value);
-//====
-}
-
-void glClearBufferfvARB (GLenum buffer, GLint drawbuffer, const GLfloat *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferfv()\n");
- gles_glClearBufferfv (buffer, drawbuffer, value);
-//====
-}
-
-void glClearBufferfiARB (GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferfi()\n");
- gles_glClearBufferfi (buffer, drawbuffer, depth, stencil);
-//====
-}
-void glClearBufferivEXT (GLenum buffer, GLint drawbuffer, const GLint *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferiv()\n");
- gles_glClearBufferiv (buffer, drawbuffer, value);
-//====
-}
-
-void glClearBufferuivEXT (GLenum buffer, GLint drawbuffer, const GLuint *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferuiv()\n");
- gles_glClearBufferuiv (buffer, drawbuffer, value);
-//====
-}
-
-void glClearBufferfvEXT (GLenum buffer, GLint drawbuffer, const GLfloat *value){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferfv()\n");
- gles_glClearBufferfv (buffer, drawbuffer, value);
-//====
-}
-
-void glClearBufferfiEXT (GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil){    _LOAD_GLES    
- gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
- Printf("VGPU: Calling glClearBufferfi()\n");
+ //gles_glDrawBuffers(1, (const GLenum *)(Attachs+drawbuffer));
+ //Printf("VGPU: Calling glClearBufferfi()\n");
  gles_glClearBufferfi (buffer, drawbuffer, depth, stencil);
 //====
 }

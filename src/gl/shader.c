@@ -15,10 +15,7 @@
 int vsh = 0;
 int pot;
 
-#include <stdio.h>
-#include <android/log.h>
-
-#define Printf(...) __android_log_print(ANDROID_LOG_INFO, "LIBGL", __VA_ARGS__)
+#include "pack/printf_def.h"
 
 
 

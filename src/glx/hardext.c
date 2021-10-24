@@ -10,6 +10,42 @@
 #endif
 #include "glx_gbm.h"
 
+/*
+#include "gl_ctx/get.h"
+#include "gl_ctx/rendering_api_interface.h"
+struct {
+	void * ptr_library;
+	rendering_api_interface_t * ptr_interface;
+	api_state_t state;
+	api_context_t ctx;
+	api_context_t ctx_old;
+} gles_ctx_interface;
+
+void Create_Set_CTX(void) {
+	printf("VGPU: init: Start Create_Set_CTX");
+	int flags = RTLD_LOCAL | RTLD_NOW;
+	// import GLESinterface
+	gles_ctx_interface.ptr_library = dlopen(LIB_GLES_NAME, flags);
+	gles_ctx_interface.ptr_interface = dlsym(gles_ctx_interface.ptr_library, "GLES2Interface");
+	// create vkctx and glctx
+	//gles_ctx_interface.state = gles_ctx_interface.ptr_interface->init_API_cb();
+	gles_ctx_interface.ctx = gles_ctx_interface.ptr_interface->create_context_cb();
+	// setCurrent: temporary ctx
+	gles_ctx_interface.ctx_old = getGlThreadSpecific();
+	setGlThreadSpecific(gles_ctx_interface.ctx);
+	
+	dlclose(gles_ctx_interface.ptr_library);
+	printf("VGPU: init: End Create_Set_CTX");
+}
+void Delete_CTX(void) {
+	printf("VGPU: init: Start Delete_CTX");
+	//gles_ctx_interface.ptr_interface->terminate_API_cb();
+	gles_ctx_interface.ptr_interface->delete_context_cb(gles_ctx_interface.ctx);
+	// setCurrent: oldctx
+	setGlThreadSpecific(gles_ctx_interface.ctx_old);
+	printf("VGPU: init: End Delete_CTX");
+}
+*/
 
 
 #ifndef EGL_PLATFORM_GBM_KHR
@@ -227,6 +263,8 @@ void GetHardwareExtensions(int notest)
     int configsFound;
     static EGLConfig pbufConfigs[1];
 
+
+
 #ifndef NO_GBM
     if (globals4es.usegbm) {
         LoadGBMFunctions();
@@ -280,8 +318,31 @@ void GetHardwareExtensions(int notest)
         return;
     }
     egl_eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext);
+    
+    
+    
 #endif
+
     tested = 1;
+    
+    
+    
+    
+    /*
+    int flags = RTLD_LOCAL | RTLD_NOW;
+	
+	gles_ctx_interface.ptr_library = dlopen(LIB_GLES_NAME, flags);
+	gles_ctx_interface.ptr_interface = dlsym(gles_ctx_interface.ptr_library, "GLES2Interface");
+	// create vkctx and glctx
+	gles_ctx_interface.state = gles_ctx_interface.ptr_interface->init_API_cb();
+	gles_ctx_interface.ctx = gles_ctx_interface.ptr_interface->create_context_cb();
+	// setCurrent
+	setGlThreadSpecific(gles_ctx_interface.ctx);
+	
+	dlclose(gles_ctx_interface.ptr_library);
+	*/
+	//Create_Set_CTX();
+    
     
     LOAD_GLES2_(glGetString);
     LOAD_GLES2_(glGetIntegerv);
@@ -453,7 +514,7 @@ void GetHardwareExtensions(int notest)
     // get GLES driver signatures...
     const char* vendor = gles_glGetString(GL_VENDOR);
     const char* renderer = gles_glGetString(GL_RENDERER);
-    SHUT_LOGD("Hardware vendor is %s\n", vendor);
+    //SHUT_LOGD("Hardware vendor is %s\n", vendor);
     SHUT_LOGD("Hardware renderer is %s\n", renderer);
     if(strstr(vendor, "ARM"))
         hardext.vendor = VEND_ARM;
@@ -514,6 +575,7 @@ void GetHardwareExtensions(int notest)
     }
 	
 	
+	
     printf("VGPU: Begin cleanup EGL\n");
     // End, cleanup
     int pot;
@@ -523,6 +585,9 @@ void GetHardwareExtensions(int notest)
     printf("VGPU: End cleanup EGL\n");
     pot= egl_eglTerminate(eglDisplay);
     printf("VGPU: End2 cleanup EGL\n");
+    
+    
+    //Delete_CTX();
     
 #endif
 }
