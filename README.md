@@ -26,4 +26,4 @@ The % mod operator is not yet supported (this causes MC1.17 to fail because shad
 
 
 # About vk
-Now and in the future I will work mainly on the vgpu_vk branch.
+I am working on the fork of VKGL.
